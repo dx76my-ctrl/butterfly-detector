@@ -1,0 +1,8 @@
+# 蝴蝶检测数据集配置（单类目标检测）
+# Butterfly detection — single class
+path: .
+train: images/train
+val: images/val
+nc: 1
+names:
+  - butterfly
