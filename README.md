@@ -1,104 +1,104 @@
-# Butterfly Detector · 蝴蝶检测器
+# Butterfly Detector
 
-[English](README.en.md) · [中文](README.md)
+[English](README.md) · [中文](README.zh-CN.md)
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Model: YOLO26s](https://img.shields.io/badge/Model-YOLO26s-46c08d.svg)](#)
 
-一个**单类目标检测模型**，用于在图像中**框出每一只蝴蝶的位置**（不做物种分类）。
-基于 [Ultralytics](https://github.com/ultralytics/ultralytics) YOLO26s，在约 6300 张人工标注的真实蝴蝶照片上训练而成，对收翅、伪装、多目标场景有较好鲁棒性。
+A **single-class object detector** that **locates every butterfly in an image** (it does *not* classify species).
+Built on [Ultralytics](https://github.com/ultralytics/ultralytics) YOLO26s and trained on ~6,300 hand-annotated real-world butterfly photos, with good robustness to closed wings, camouflage, and multi-target scenes.
 
-> 本仓库**只包含检测器**及其推理源码；物种分类（识别"是什么蝴蝶"）不在本仓库范围内。
+> This repository contains **only the detector** and its inference code. Species classification ("which butterfly is this") is out of scope.
 
-## ✨ 特性
+## ✨ Features
 
-- 🦋 **单类检测**：只判定"是不是蝴蝶、在哪"，泛化到未见过的物种
-- 🪶 **轻量**：YOLO26s，9.9M 参数，CPU 可实时推理
-- 🎯 **召回优先**：在真实多蝶/伪装场景下保持高召回
-- 🔌 **开箱即用**：CLI、Python 库、HTTP 服务三种用法
+- 🦋 **Single-class detection** — decides only "is this a butterfly, and where", generalizing to unseen species
+- 🪶 **Lightweight** — YOLO26s, 9.9M parameters, real-time on CPU
+- 🎯 **Recall-first** — keeps high recall on real multi-butterfly / camouflaged scenes
+- 🔌 **Ready to use** — CLI, Python library, and HTTP service
 
-## 📊 性能
+## 📊 Performance
 
-在 235 张人工标注的真实蝴蝶照片留出集上（单类，IoU=0.6）：
+On a held-out set of 235 hand-annotated real butterfly photos (single class, IoU=0.6):
 
-| 指标 | 数值 |
+| Metric | Value |
 |---|---|
 | Precision | 0.942 |
 | **Recall** | **0.924** |
 | mAP@50 | 0.953 |
 | mAP@50-95 | 0.813 |
 
-模型规格：YOLO26s · 9,948,638 参数 · 单类 `butterfly` · 训练分辨率 640。
+Model: YOLO26s · 9,948,638 parameters · single class `butterfly` · training resolution 640.
 
-## 🚀 快速开始
+## 🚀 Quick Start
 
 ```bash
 pip install -r requirements.txt
 ```
 
-**命令行：**
+**Command line:**
 ```bash
-python detect.py photo.jpg                 # 打印检出的归一化框
-python detect.py photo.jpg --save out.jpg  # 同时保存带框预览
-python detect.py photo.jpg --device cuda   # GPU；mps 为 Apple 芯片
+python detect.py photo.jpg                 # print detected normalized boxes
+python detect.py photo.jpg --save out.jpg  # also save an annotated preview
+python detect.py photo.jpg --device cuda   # GPU; use mps for Apple Silicon
 ```
 
-**作为 Python 库：**
+**As a Python library:**
 ```python
 from detect import detect
 boxes = detect("photo.jpg", conf=0.25)
-# -> [{"bbox": [x1, y1, x2, y2], "conf": 0.93}, ...]   bbox 为归一化 0~1 坐标
+# -> [{"bbox": [x1, y1, x2, y2], "conf": 0.93}, ...]   bbox is normalized 0~1
 ```
 
-**作为 HTTP 服务：**
+**As an HTTP service:**
 ```bash
 uvicorn serve:app --host 0.0.0.0 --port 8000
 # POST /detect  (multipart: image)  ->  {"count": N, "detections": [{bbox, conf}]}
 curl -F "image=@photo.jpg" http://127.0.0.1:8000/detect
 ```
 
-## 🧠 训练说明
+## 🧠 Training Notes
 
-- **数据**：约 6300 张真实蝴蝶照片，人工标注 YOLO 单类边界框（butterfly）。
-- **基座**：YOLO26s 预训练权重微调。
-- **要点**：训练分辨率 640；混合多目标样本，强化"一图多蝶"与收翅/伪装等硬样本的召回。
-- **经验**：通用背景（如 COCO 随机图）当负样本会压低召回且与真实误检源不匹配；本模型以保召回为优先。
+- **Data**: ~6,300 real butterfly photos, manually annotated with single-class (butterfly) YOLO bounding boxes.
+- **Base**: fine-tuned from YOLO26s pretrained weights.
+- **Highlights**: training resolution 640; mixed multi-target samples to strengthen recall on "many butterflies per image" and hard cases (closed wings, camouflage).
+- **Lesson learned**: using generic backgrounds (e.g. random COCO images) as negatives lowers recall and does not match the real false-positive sources; this model prioritizes recall.
 
-`data.yaml` 给出了单类数据集的标准配置，可据此用 `ultralytics` 复现训练。
+`data.yaml` provides the standard single-class dataset config, so training can be reproduced with `ultralytics`.
 
-## 📦 仓库结构
+## 📦 Repository Layout
 
 ```
 butterfly-detector/
-├── weights/butterfly_detector.pt   # 训练好的检测权重（20MB）
-├── detect.py                       # 推理：CLI + Python 函数
-├── serve.py                        # 推理：FastAPI HTTP 服务
-├── data.yaml                       # 单类数据集配置
+├── weights/butterfly_detector.pt   # trained detection weights (20MB)
+├── detect.py                       # inference: CLI + Python function
+├── serve.py                        # inference: FastAPI HTTP service
+├── data.yaml                       # single-class dataset config
 ├── requirements.txt
 ├── LICENSE                         # AGPL-3.0
 └── README.md
 ```
 
-## 📄 许可证 License
+## 📄 License
 
-本项目以 **GNU AGPL-3.0** 开源。
+This project is released under the **GNU AGPL-3.0**.
 
-本模型基于 Ultralytics YOLO（AGPL-3.0）训练，依据其许可，本衍生作品同样采用 **AGPL-3.0**。这意味着：
+The model is trained with Ultralytics YOLO (AGPL-3.0); per its license, this derivative work is also licensed under **AGPL-3.0**. This means:
 
-- 你可以自由使用、修改、再分发本项目；
-- 若你**修改本项目并作为网络服务对外提供**，须向使用者提供**完整对应源码**（AGPL §13）；
-- 衍生作品须同样以 AGPL-3.0 开源。
+- You are free to use, modify, and redistribute this project;
+- If you **modify it and offer it as a network service**, you must provide the **complete corresponding source code** to its users (AGPL §13);
+- Derivative works must also be released under AGPL-3.0.
 
-> 如需在闭源/商业场景中使用 Ultralytics YOLO 而不受 AGPL 约束，可向 Ultralytics 购买[企业授权](https://www.ultralytics.com/license)。
+> To use Ultralytics YOLO in a closed-source / commercial setting without AGPL obligations, you may purchase an [Enterprise License](https://www.ultralytics.com/license) from Ultralytics.
 
-⚠️ 请将本仓库的 `LICENSE` 文件替换为 AGPL-3.0 官方完整文本（GitHub 创建文件时选择 "GNU AGPLv3" 模板即可自动填入）。
+⚠️ Replace this repository's `LICENSE` file with the full official AGPL-3.0 text (GitHub's "GNU AGPLv3" license template inserts it automatically).
 
-## 🙏 致谢 Acknowledgements
+## 🙏 Acknowledgements
 
 - [Ultralytics YOLO](https://github.com/ultralytics/ultralytics)
-- 标注数据来自真实蝴蝶观测照片（人工逐框标注）
+- Annotations from real butterfly observation photos (manually boxed)
 
-## 📌 引用 Citation
+## 📌 Citation
 
 ```bibtex
 @software{butterfly_detector,
